@@ -1,130 +1,184 @@
-# TaskPilot AI
+# TaskPilot AI — Intelligent Personal Task Assistant
 
-An AI-assisted task management application built with **React**, **Spring Boot**, **MySQL**, and a **Python AI/NLP service**.
+**Plan smarter. Focus better. Get things done.**
 
-> **Project status:** Development / local setup. Endpoint-specific documentation and deployment instructions should be verified against the complete source code before production use.
+TaskPilot AI is a working task-management SaaS product that converts natural-language
+instructions into structured tasks. You type a sentence; the system extracts individual
+tasks, deadlines, priorities and categories; you review and approve; only approved
+tasks are saved.
 
-## Overview
+> Hackathon Problem Statement No. 41 — AI Personal Task Assistant
 
-TaskPilot AI is designed to bring task management and AI-assisted workflows together in one application. It uses a web frontend, a Java backend API, a relational database, and a Python service for AI/NLP functionality.
+## Architecture
 
-## Technology Stack
+| Layer | Technology | Role |
+|---|---|---|
+| Frontend | React + Vite, React Router, Recharts, Lucide | Premium SaaS UI (landing, auth, dashboard, AI capture, tasks, My Day, calendar, Kanban, activity, notifications, Pomodoro, settings) |
+| Primary backend | **Java 21 + Spring Boot 3.3** (Spring Web, Spring Data JPA/Hibernate, Spring Security, JWT, BCrypt, Bean Validation, Springdoc OpenAPI) | ALL application data, auth, business logic, dashboard analytics |
+| Database | **MySQL 8** (JPA/Hibernate) | users, tasks, categories, subtasks, task_history, notifications, user_preferences |
+| NLP service | Python 3 (standard library only, zero dependencies) | Supporting service ONLY: natural-language extraction + explainable prioritization |
 
-| Layer | Technology |
-|---|---|
-| Frontend | React, Vite, JavaScript |
-| Backend API | Java, Spring Boot, Maven |
-| Database | MySQL |
-| AI/NLP service | Python |
-| Authentication | Spring Security / JWT (verify the active configuration in source before deployment) |
+Java Spring Boot is the primary backend and the only component that talks to MySQL.
+Python is never in the data path: if the Python service is down, the Java backend
+falls back to a built-in parser implementing the same rules, so task capture keeps working.
 
-## Repository Structure
+The NLP engine is **rule-based NLP** (text segmentation, date parsing, keyword
+classification, priority scoring). It is deliberately labelled as such — it is not a
+trained machine-learning model, and it needs no paid API key.
 
-```text
-TaskPilot-AI/
-├── frontend/       # React + Vite application
-├── backend/        # Spring Boot REST API
-├── backend-ai/     # Python AI/NLP service
-├── docs/           # Project documentation
-├── .gitignore
-├── .env.example
-└── README.md
+## Deploying to the internet
+
+See **DEPLOY.md** — the included `Dockerfile` builds the whole product (site + API + accounts) as one service for Railway/Render with a MySQL database, giving one public link that works on any device.
+
+## Project structure
+
 ```
-
-This describes the intended layout; keep it aligned with the actual committed files.
+TaskPilot-AI/
+  backend/       Spring Boot application (pom.xml, src/main/java/com/taskpilot/...)
+                 - src/main/resources/db/schema.sql  (reference MySQL DDL)
+  backend-ai/    nlp_service.py  (Python NLP service, port 8000)
+  frontend/      React + Vite application (port 5173)
+```
 
 ## Prerequisites
 
-- Git
-- Node.js and npm
-- A JDK compatible with the backend (Java 21 is the intended baseline)
-- Maven
-- MySQL Server
-- Python 3 and pip
+- JDK 21 and Maven 3.9+
+- MySQL 8 running locally
+- Node.js 18+ and npm
+- Python 3.10+
 
-## Local Development
+## 1. MySQL setup
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Tejpratap-069/TaskPilot-AI.git
-cd TaskPilot-AI
+```sql
+CREATE DATABASE taskpilot;
+CREATE USER 'taskpilot'@'localhost' IDENTIFIED BY 'taskpilot';
+GRANT ALL PRIVILEGES ON taskpilot.* TO 'taskpilot'@'localhost';
+FLUSH PRIVILEGES;
 ```
 
-### 2. Configure MySQL and start the backend
+Tables are created automatically by Hibernate on first run
+(`spring.jpa.hibernate.ddl-auto=update`). A reference DDL is provided at
+`backend/src/main/resources/db/schema.sql` if you prefer manual provisioning.
 
-Create a local MySQL database and configure the backend's database URL, username, and password in your local configuration. Never commit real credentials or JWT signing keys.
+Database credentials are NOT hardcoded — they come from environment variables
+(defaults below are for local development only):
+
+| Variable | Default |
+|---|---|
+| `DB_URL` | `jdbc:mysql://localhost:3306/taskpilot?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true` |
+| `DB_USERNAME` | `taskpilot` |
+| `DB_PASSWORD` | `taskpilot` |
+| `JWT_SECRET` | dev placeholder — **set your own in production** |
+| `AI_SERVICE_URL` | `http://localhost:8000` |
+| `SERVER_PORT` | `8080` |
+
+## 2. Run the Python NLP service
+
+```bash
+cd backend-ai
+python nlp_service.py            # listens on http://localhost:8000
+# health check:  curl http://localhost:8000/health
+```
+
+No `pip install` is needed — it uses only the Python standard library.
+
+## 3. Run the Java backend
 
 ```bash
 cd backend
+mvn spring-boot:run              # API on http://localhost:8080
+# Swagger UI: http://localhost:8080/swagger-ui.html
+```
+
+### Optional demo account
+
+For the live demo, set environment variables before starting the backend and a
+demo account (with a few seed tasks) is created automatically. Nothing is
+hardcoded; without these variables no demo account exists.
+
+```bash
+# Windows PowerShell example
+$env:DEMO_USER_EMAIL="demo@taskpilot.ai"
+$env:DEMO_USER_PASSWORD="demo1234"
 mvn spring-boot:run
 ```
 
-The backend commonly runs on port `8080`, unless configured otherwise.
-
-### 3. Start the frontend
-
-In a second terminal from the repository root:
+## 4. Run the frontend
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev                      # http://localhost:5173
 ```
 
-Vite commonly serves the frontend at `http://localhost:5173`. Use the URL printed in your terminal if it differs.
+The frontend reads the API base URL from `frontend/.env`
+(`VITE_API_BASE_URL=http://localhost:8080/api`).
 
-### 4. Start the Python AI service
+## Demo workflow (evaluation script)
 
-Inspect `backend-ai/` to identify its dependency file and entry point. If `requirements.txt` exists, create a virtual environment first.
+1. Open http://localhost:5173 → landing page → **Get started** → register, or sign in with the demo account.
+2. Open **AI Task Capture** and paste:
+   *"I have to finish my Java assignment by tomorrow, revise machine learning on Sunday, complete my Japanese preparation before Monday, and submit my project next Friday. Java is the most urgent."*
+3. Click **Analyze instruction** → 4 extracted tasks appear with deadlines, priorities, categories and confidence. The Java task is URGENT because of the final sentence.
+4. Edit a deadline or priority in the preview, untick one task, then **Save approved tasks**.
+5. Open **My Tasks** → the approved tasks are there, persisted in MySQL.
+6. Change a task's status (TODO → IN_PROGRESS → COMPLETED) from the list, the board, or My Day.
+7. Return to **Overview** → totals, overdue, due-today, weekly chart and completion rate have updated from real data.
+8. Open **Activity** → creation, status and priority changes are in the timeline.
+9. Restart the backend and sign in again → all data survives (MySQL persistence).
 
-**Windows PowerShell**
-```powershell
-cd backend-ai
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
+## Key API endpoints
+
+```
+POST /api/auth/register        POST /api/auth/login         GET /api/auth/me
+POST /api/ai/parse-tasks       POST /api/ai/prioritize
+POST /api/tasks                GET  /api/tasks              GET /api/tasks/{id}
+PUT  /api/tasks/{id}           PATCH /api/tasks/{id}/status PATCH /api/tasks/{id}/priority
+DELETE /api/tasks/{id}         GET  /api/tasks/{id}/history
+POST /api/tasks/{id}/subtasks  PATCH /api/tasks/{id}/subtasks/{subId}/toggle
+GET  /api/dashboard/summary    GET  /api/dashboard/weekly   GET /api/dashboard/upcoming
+GET  /api/dashboard/focus      GET  /api/dashboard/breakdown
+GET  /api/planner/today        GET  /api/planner/upcoming   GET  /api/activity
+GET  /api/notifications        PATCH /api/notifications/{id}/read
+GET  /api/preferences          PUT  /api/preferences
 ```
 
-**macOS / Linux**
+Security model: every endpoint except `/api/auth/**` and Swagger requires a JWT.
+The current user is always derived from the token's security context — never from
+request parameters — and every task query is scoped to that user (cross-user access
+returns 404). Passwords are stored only as BCrypt hashes.
+
+## Running without MySQL (smoke tests)
+
+The default profile is MySQL. For a quick smoke test on a machine without MySQL,
+a `dev` profile uses an in-memory H2 database in MySQL-compatibility mode:
+
 ```bash
-cd backend-ai
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -r requirements.txt
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-Start the service using the command documented by its current source/configuration.
+Data in dev profile does not persist between runs. Use the default MySQL profile
+for the real demonstration.
 
-## Documentation
+## Tests
 
-- [Local setup](docs/SETUP.md)
-- [Architecture overview](docs/ARCHITECTURE.md)
-- [API documentation notes](docs/API.md)
+```bash
+cd backend
+mvn test
+```
 
-## Security Notes
+Test coverage: registration/login/invalid-login, unauthorized access (401),
+task CRUD, status completion/reopening, ownership isolation, dashboard statistics
+computed from real rows (including overdue calculation), task history recording,
+and the AI parse endpoint through the local fallback parser (Python service
+intentionally unreachable in the test profile). The NLP extraction rules are
+additionally covered by unit tests for the Java fallback parser (multiple-task
+extraction, weekday/month dates, the "most urgent" comparative boost, and
+missing-date warnings).
 
-- Do not commit `.env`, local configuration containing secrets, database dumps, API keys, or JWT secrets.
-- Use `.env.example` for safe placeholders only; update variable names to match the actual implementation.
-- Rotate any credential that has already been exposed publicly.
-- Configure production CORS, authentication, HTTPS, and secrets explicitly before deployment.
-- Exclude `node_modules/`, Maven `target/`, Python virtual environments, logs, and local database files from version control.
+## Design
 
-## Troubleshooting
-
-- **Backend will not start:** Check Java/Maven versions, MySQL availability, database configuration, and startup logs.
-- **Frontend cannot reach the API:** Check the API base URL, backend port, CORS configuration, and authentication requirements.
-- **Port already in use:** Stop the conflicting process or configure another port.
-- **401 Unauthorized:** Verify the route and active Spring Security configuration; protected routes may require a valid token.
-
-## Contributing
-
-1. Create a feature branch.
-2. Keep changes focused and documented.
-3. Run the relevant frontend/backend checks.
-4. Never include secrets or generated build/dependency directories in commits.
-5. Include a clear summary and testing notes with pull requests.
-
-## License
-
-A license has not yet been selected. Until one is added, do not assume that the repository grants permission to reuse, modify, or redistribute its code.
+The UI follows a restrained professional SaaS design system (Linear/Notion-inspired,
+not copied): navy `#243447`, blue-gray `#526579`, teal accent `#477C78`, off-white
+`#F7F8FA` background, white cards with thin `#E3E7EC` borders, Inter typography,
+slim dark sidebar + white topbar. No gradients, glow or glassmorphism.
