@@ -9,6 +9,28 @@ tasks are saved.
 
 > Hackathon Problem Statement No. 41 — AI Personal Task Assistant
 
+## Screenshots
+
+**Dashboard** — live stats, overall completion, Today's Focus and weekly productivity
+
+![Dashboard](docs/screenshots/dashboard.svg)
+
+**AI Task Capture** — type one instruction; TaskPilot extracts individual tasks with deadlines, priorities and categories for your review. Nothing is saved until you approve it.
+
+![AI Task Capture](docs/screenshots/ai-capture.svg)
+
+**My Tasks** — search, filter and sort everything, with subtask progress on each card
+
+![My Tasks](docs/screenshots/tasks.svg)
+
+**Kanban Board** — tasks grouped by status, moved with one click
+
+![Kanban Board](docs/screenshots/board.svg)
+
+**Calendar** — every deadline on a monthly view
+
+![Calendar](docs/screenshots/calendar.svg)
+
 ## Architecture
 
 | Layer | Technology | Role |
