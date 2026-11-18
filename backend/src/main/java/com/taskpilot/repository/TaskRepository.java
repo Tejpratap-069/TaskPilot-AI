@@ -7,6 +7,7 @@ import com.taskpilot.enums.TaskStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -59,6 +60,24 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT c.name, t.status, COUNT(t) FROM Task t LEFT JOIN t.category c " +
            "WHERE t.user = :user GROUP BY c.name, t.status")
     List<Object[]> countByCategoryAndStatus(@Param("user") User user);
+
+    // ------------------------------------------------------------- trash bin
+    // Native queries: they must see soft-deleted rows, which the entity-level
+    // @SQLRestriction("deleted_at is null") hides from all JPA queries.
+
+    @Query(nativeQuery = true,
+           value = "SELECT COUNT(*) FROM tasks WHERE id = :id AND user_id = :userId AND deleted_at IS NOT NULL")
+    long countTrashedTask(@Param("id") Long id, @Param("userId") Long userId);
+
+    @Modifying
+    @Query(nativeQuery = true,
+           value = "UPDATE tasks SET deleted_at = NULL WHERE id = :id AND user_id = :userId AND deleted_at IS NOT NULL")
+    int restoreTrashedTask(@Param("id") Long id, @Param("userId") Long userId);
+
+    @Modifying
+    @Query(nativeQuery = true,
+           value = "DELETE FROM tasks WHERE id = :id AND user_id = :userId AND deleted_at IS NOT NULL")
+    int hardDeleteTrashedTask(@Param("id") Long id, @Param("userId") Long userId);
 
     long countByUserAndCreatedAtBetween(User user, LocalDateTime from, LocalDateTime to);
 

@@ -249,6 +249,48 @@ input::placeholder, textarea::placeholder { color: #66657a; }
 .cal-cell .d { font-weight: 700; font-size: 12.5px; margin-bottom: 4px; }
 .cal-task { display: block; font-size: 11.5px; font-weight: 600; padding: 2px 6px; border-radius: 6px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
 
+/* ---------- calendar: week time-grid ---------- */
+.week-card { padding: 12px; }
+.week-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.week-grid { min-width: 720px; }
+.week-head, .week-allday, .week-body { display: grid; grid-template-columns: 52px repeat(7, 1fr); }
+.week-day-head { text-align: center; padding: 4px 0 8px; color: var(--text-2); display: flex; flex-direction: column; gap: 1px; }
+.week-day-head span { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
+.week-day-head b { font-size: 16px; color: var(--text); }
+.week-day-head.today b, .week-day-head.today span { color: var(--teal-dark); }
+.week-allday { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.week-gutter-label { font-size: 10.5px; color: var(--text-2); text-align: right; padding: 6px 8px 6px 0; text-transform: uppercase; letter-spacing: .3px; }
+.week-allday-cell { padding: 4px; min-height: 28px; border-left: 1px solid var(--border); }
+.week-chip { display: block; font-size: 11.5px; font-weight: 600; padding: 2px 6px; border-radius: 6px; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; background: var(--card-2); color: var(--text); }
+.week-body { position: relative; }
+.week-gutter { position: relative; }
+.week-hour-label { height: 48px; font-size: 10.5px; color: var(--text-2); text-align: right; padding-right: 8px; transform: translateY(-6px); font-variant-numeric: tabular-nums; }
+.week-col { position: relative; height: 864px; border-left: 1px solid var(--border); background: repeating-linear-gradient(to bottom, transparent 0, transparent 47px, var(--border) 47px, var(--border) 48px); }
+.week-col.today { background-color: rgba(124, 108, 246, .05); }
+.week-block { position: absolute; left: 3px; right: 3px; border-radius: 9px; padding: 4px 7px; font-size: 11.5px; line-height: 1.3; overflow: hidden; cursor: pointer; background: var(--card-2); color: var(--text); box-shadow: var(--shadow-sm); }
+.week-block-time { font-weight: 700; margin-right: 5px; font-variant-numeric: tabular-nums; }
+.week-block-title { font-weight: 600; }
+/* week blocks + all-day chips: pastel by category */
+.week-block[data-category='STUDY'], .week-chip[data-category='STUDY'] { background: var(--cat-study); }
+.week-block[data-category='PROJECT'], .week-chip[data-category='PROJECT'] { background: var(--cat-project); }
+.week-block[data-category='PERSONAL'], .week-chip[data-category='PERSONAL'] { background: var(--cat-personal); }
+.week-block[data-category='WORK'], .week-chip[data-category='WORK'] { background: var(--cat-work); }
+.week-block[data-category='HEALTH'], .week-chip[data-category='HEALTH'] { background: var(--cat-health); }
+.week-block[data-category='FINANCE'], .week-chip[data-category='FINANCE'] { background: var(--cat-finance); }
+.week-block:not([data-category='OTHER']), .week-chip:not([data-category='OTHER']) { color: var(--pastel-ink); }
+.week-block[data-category='OTHER'] { border-left: 4px solid var(--cat-other-edge); }
+
+/* ---------- attachments (task modal) ---------- */
+.att-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 4px; }
+.att-item { display: flex; align-items: center; gap: 10px; background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 7px 10px; }
+.att-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
+.att-chip { width: 44px; height: 44px; border-radius: 8px; background: var(--input-bg); color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.att-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.att-name { font-weight: 600; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- trash (tasks page) ---------- */
+.trash-row td { vertical-align: middle; }
+
 /* ---------- landing / auth ---------- */
 .landing-nav { display: flex; align-items: center; gap: 12px; padding: 16px 32px; max-width: 1200px; margin: 0 auto; }
 .hero { max-width: 880px; margin: 0 auto; text-align: center; padding: 64px 24px 30px; }

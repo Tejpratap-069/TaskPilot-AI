@@ -3,6 +3,7 @@ package com.taskpilot.service;
 import com.taskpilot.dto.TaskDtos.*;
 import com.taskpilot.entity.*;
 import com.taskpilot.enums.HistoryAction;
+import com.taskpilot.enums.Priority;
 import com.taskpilot.enums.TaskStatus;
 import com.taskpilot.exception.ResourceNotFoundException;
 import com.taskpilot.repository.*;
@@ -10,10 +11,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 
 @Service
@@ -23,14 +28,19 @@ public class TaskService {
     private final SubtaskRepository subtasks;
     private final TaskHistoryRepository history;
     private final NotificationRepository notifications;
+    private final AttachmentRepository attachments;
+    private final JdbcTemplate jdbc;
 
     public TaskService(TaskRepository tasks, CategoryRepository categories, SubtaskRepository subtasks,
-                       TaskHistoryRepository history, NotificationRepository notifications) {
+                       TaskHistoryRepository history, NotificationRepository notifications,
+                       AttachmentRepository attachments, JdbcTemplate jdbc) {
         this.tasks = tasks;
         this.categories = categories;
         this.subtasks = subtasks;
         this.history = history;
         this.notifications = notifications;
+        this.attachments = attachments;
+        this.jdbc = jdbc;
     }
 
     // ------------------------------------------------------------------ CRUD
@@ -121,12 +131,67 @@ public class TaskService {
         return toResponse(task);
     }
 
+    /** Soft delete: the task moves to the trash bin; subtasks and attachments are kept. */
     @Transactional
     public void delete(User user, Long id) {
         Task task = ownedTask(user, id);
         record(user, task, HistoryAction.DELETED, null, task.getTitle(), null, "Task deleted");
-        subtasks.deleteByTask(task);
-        tasks.delete(task);
+        task.setDeletedAt(LocalDateTime.now());
+        tasks.save(task);
+    }
+
+    // ------------------------------------------------------------ trash bin
+    // Trashed rows are invisible to JPA (entity @SQLRestriction), so the trash
+    // list reads them through JDBC and restore/permanent-delete use the native
+    // repository statements — all owner-scoped, so another user's trashed task
+    // behaves exactly like a missing one.
+
+    @Transactional(readOnly = true)
+    public List<TaskResponse> trash(User user) {
+        return jdbc.query(
+                "SELECT t.id, t.title, t.description, t.status, t.priority, t.due_date, t.due_time, " +
+                "c.name AS category, t.estimated_minutes, t.depends_on, t.completed_at, " +
+                "t.created_at, t.updated_at " +
+                "FROM tasks t LEFT JOIN categories c ON c.id = t.category_id " +
+                "WHERE t.user_id = ? AND t.deleted_at IS NOT NULL ORDER BY t.deleted_at DESC",
+                (rs, rowNum) -> new TaskResponse(
+                        rs.getLong("id"),
+                        rs.getString("title"),
+                        rs.getString("description"),
+                        TaskStatus.valueOf(rs.getString("status")),
+                        Priority.valueOf(rs.getString("priority")),
+                        rs.getObject("due_date", LocalDate.class),
+                        rs.getObject("due_time", LocalTime.class),
+                        rs.getString("category"),
+                        rs.getObject("estimated_minutes", Integer.class),
+                        rs.getString("depends_on"),
+                        toLocalDateTime(rs.getTimestamp("completed_at")),
+                        toLocalDateTime(rs.getTimestamp("created_at")),
+                        toLocalDateTime(rs.getTimestamp("updated_at")),
+                        List.of()),
+                user.getId());
+    }
+
+    @Transactional
+    public TaskResponse restore(User user, Long id) {
+        if (tasks.restoreTrashedTask(id, user.getId()) == 0) {
+            throw new ResourceNotFoundException("Task not found");
+        }
+        return toResponse(ownedTask(user, id));
+    }
+
+    @Transactional
+    public void permanentDelete(User user, Long id) {
+        if (tasks.countTrashedTask(id, user.getId()) == 0) {
+            throw new ResourceNotFoundException("Task not found");
+        }
+        subtasks.deleteByTaskId(id);
+        attachments.deleteByTaskId(id);
+        tasks.hardDeleteTrashedTask(id, user.getId());
+    }
+
+    private static LocalDateTime toLocalDateTime(Timestamp ts) {
+        return ts != null ? ts.toLocalDateTime() : null;
     }
 
     // -------------------------------------------------------------- subtasks

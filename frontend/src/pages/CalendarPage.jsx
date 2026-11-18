@@ -11,8 +11,29 @@ const CAT_INK = '#23222e';
 const FALLBACK_BG = '#2a2a35';
 const FALLBACK_FG = '#c9c8d6';
 
+const HOUR_H = 48;               // px per hour in the week grid
+const DAY_START = 6;             // first visible hour (06:00)
+const HOURS = Array.from({ length: 24 - DAY_START }, (_, i) => DAY_START + i); // 06..23
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+function dateKey(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function mondayOf(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // Monday-first
+  return x;
+}
+function timeToMinutes(t) {
+  if (!t) return null;
+  const p = String(t).split(':');
+  return Number(p[0]) * 60 + Number(p[1] || 0);
+}
+
 export default function CalendarPage() {
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [view, setView] = useState('month'); // 'month' | 'week' (month is the default)
+  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()));
   const [tasks, setTasks] = useState([]);
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
@@ -48,21 +69,106 @@ export default function CalendarPage() {
     return m;
   }, [tasks]);
 
-  function move(delta) { setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 1)); }
+  function move(delta) {
+    if (view === 'week') {
+      const d = new Date(weekStart); d.setDate(d.getDate() + delta * 7); setWeekStart(d);
+    } else {
+      setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + delta, 1));
+    }
+  }
+  function goToday() {
+    if (view === 'week') setWeekStart(mondayOf(new Date()));
+    else setCursor(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+  }
+
+  const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i); return d;
+  }), [weekStart]);
+  const weekLabel = useMemo(() => {
+    const s = weekDays[0], e = weekDays[6];
+    const mon = (d) => d.toLocaleDateString(undefined, { month: 'short' });
+    return s.getMonth() === e.getMonth()
+      ? `${s.getDate()} – ${e.getDate()} ${mon(s)} ${s.getFullYear()}`
+      : `${s.getDate()} ${mon(s)} – ${e.getDate()} ${mon(e)} ${e.getFullYear()}`;
+  }, [weekDays]);
 
   return (
     <div>
       {error && <div className="alert alert-error">{error}</div>}
-      <div className="flex" style={{ justifyContent: 'space-between' }}>
+      <div className="flex wrap" style={{ justifyContent: 'space-between' }}>
         <div className="section-title" style={{ fontSize: 19 }}>
-          {cursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+          {view === 'week' ? weekLabel : cursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
         </div>
         <div className="flex">
+          <div className="flex" style={{ gap: 6 }}>
+            <button className={'btn btn-sm ' + (view === 'month' ? 'btn-primary' : 'btn-outline')} onClick={() => setView('month')}>Month</button>
+            <button className={'btn btn-sm ' + (view === 'week' ? 'btn-primary' : 'btn-outline')} onClick={() => setView('week')}>Week</button>
+          </div>
           <button className="btn btn-outline btn-sm" onClick={() => move(-1)}><ChevronLeft size={15} /> Prev</button>
-          <button className="btn btn-outline btn-sm" onClick={() => setCursor(new Date(new Date().getFullYear(), new Date().getMonth(), 1))}>Today</button>
+          <button className="btn btn-outline btn-sm" onClick={goToday}>Today</button>
           <button className="btn btn-outline btn-sm" onClick={() => move(1)}>Next <ChevronRight size={15} /></button>
         </div>
       </div>
+      {view === 'week' && (
+        <div className="card week-card mt">
+          <div className="week-scroll">
+            <div className="week-grid">
+              <div className="week-head">
+                <div />
+                {weekDays.map((d, i) => (
+                  <div key={d.toISOString()} className={'week-day-head' + (dateKey(d) === todayKey ? ' today' : '')}>
+                    <span>{DAY_NAMES[i]}</span><b>{d.getDate()}</b>
+                  </div>
+                ))}
+              </div>
+              <div className="week-allday">
+                <div className="week-gutter-label">All day</div>
+                {weekDays.map(d => {
+                  const key = dateKey(d);
+                  const items = (byDate[key] || []).filter(t => !t.dueTime);
+                  return (
+                    <div key={key} className="week-allday-cell">
+                      {items.map(t => (
+                        <span key={t.id} className="week-chip" data-category={t.category || 'OTHER'} style={{ opacity: t.status === 'COMPLETED' ? 0.55 : 1 }} onClick={() => setEditing(t)} title={t.title}>
+                          {t.priority === 'URGENT' || t.priority === 'HIGH' ? '● ' : ''}{t.title}
+                        </span>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="week-body">
+                <div className="week-gutter">
+                  {HOURS.map(h => <div key={h} className="week-hour-label">{String(h).padStart(2, '0')}:00</div>)}
+                </div>
+                {weekDays.map(d => {
+                  const key = dateKey(d);
+                  const items = (byDate[key] || []).filter(t => t.dueTime);
+                  return (
+                    <div key={key} className={'week-col' + (key === todayKey ? ' today' : '')}>
+                      {items.map(t => {
+                        const startMin = timeToMinutes(t.dueTime);
+                        const top = Math.min(Math.max(0, (startMin - DAY_START * 60) / 60 * HOUR_H), HOURS.length * HOUR_H - 30);
+                        const dur = Math.max(t.estimatedMinutes || 60, 30);
+                        const height = Math.min(dur / 60 * HOUR_H, HOURS.length * HOUR_H - top);
+                        return (
+                          <div key={t.id} className="week-block" data-category={t.category || 'OTHER'}
+                            style={{ top, height, opacity: t.status === 'COMPLETED' ? 0.55 : 1 }}
+                            onClick={() => setEditing(t)} title={t.title}>
+                            <span className="week-block-time">{String(t.dueTime).slice(0, 5)}</span>
+                            <span className="week-block-title">{t.title}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {view === 'month' && (
       <div className="cal-grid mt">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <div key={d} className="cal-head">{d}</div>)}
         {cells.map(c => (
@@ -77,6 +183,7 @@ export default function CalendarPage() {
           </div>
         ))}
       </div>
+      )}
       {editing && <TaskModal task={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
     </div>
   );

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Plus, Search, Pencil, Trash2, CheckCircle2, RotateCcw } from 'lucide-react';
 import { taskService } from '../api/services';
-import { PriorityBadge, StatusBadge, DueLabel, EmptyState, Spinner, CategoryBadge, PRIORITIES, STATUSES } from '../components/ui';
+import { PriorityBadge, StatusBadge, DueLabel, EmptyState, Spinner, CategoryBadge, PRIORITIES, STATUSES, fmtDate } from '../components/ui';
 import TaskModal from '../components/TaskModal';
 
 export default function Tasks() {
@@ -14,6 +14,8 @@ export default function Tasks() {
   const [error, setError] = useState('');
   const [modal, setModal] = useState(undefined); // undefined=closed, null=new, obj=edit
   const [justDone, setJustDone] = useState(null); // task id that was just completed (micro-animation)
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashTasks, setTrashTasks] = useState(null);
 
   function load() {
     taskService.list({ search, status, priority, sortBy, size: 200 })
@@ -38,6 +40,23 @@ export default function Tasks() {
     try { await taskService.remove(task.id); load(); } catch (e) { setError(e.message); }
   }
 
+  function loadTrash() {
+    taskService.trash()
+      .then(list => setTrashTasks(Array.isArray(list) ? list : []))
+      .catch(e => setError(e.message));
+  }
+  function toggleTrash() {
+    if (!showTrash) loadTrash();
+    setShowTrash(!showTrash);
+  }
+  async function restoreTask(task) {
+    try { await taskService.restore(task.id); loadTrash(); load(); } catch (e) { setError(e.message); }
+  }
+  async function deleteForever(task) {
+    if (!window.confirm('Delete "' + task.title + '" forever? This cannot be undone.')) return;
+    try { await taskService.removePermanent(task.id); loadTrash(); } catch (e) { setError(e.message); }
+  }
+
   return (
     <div>
       {error && <div className="alert alert-error">{error}</div>}
@@ -59,8 +78,45 @@ export default function Tasks() {
           <option value="createdAt">Sort: recently created</option>
         </select>
         <button className="btn btn-primary" onClick={() => setModal(null)}><Plus size={16} /> New task</button>
+        <button className={'btn ' + (showTrash ? 'btn-primary' : 'btn-outline')} onClick={toggleTrash}><Trash2 size={16} /> Trash</button>
       </div>
 
+      {showTrash ? (
+        <>
+          <div className="card mt">
+            {trashTasks === null ? <div className="card-p flex"><Spinner /> <span className="muted">Loading trash...</span></div>
+            : trashTasks.length === 0 ? <EmptyState text="Trash is empty" sub="Deleted tasks will appear here, and can be restored." />
+            : (
+              <table className="table">
+                <thead><tr><th>Task</th><th>Due</th><th>Deleted</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+                <tbody>
+                  {trashTasks.map(t => (
+                    <tr key={t.id} className="trash-row" data-category={t.category || 'OTHER'}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{t.title}</div>
+                        <div className="flex" style={{ gap: 6, marginTop: 2 }}>
+                          <CategoryBadge value={t.category} />
+                          <PriorityBadge value={t.priority} />
+                        </div>
+                      </td>
+                      <td>{t.dueDate ? fmtDate(t.dueDate) : <span className="muted">No date</span>}</td>
+                      <td>{t.deletedAt ? <span className="small muted">{new Date(t.deletedAt).toLocaleString()}</span> : <span className="muted">—</span>}</td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="btn btn-outline btn-sm" onClick={() => restoreTask(t)}><RotateCcw size={14} /> Restore</button>
+                          <button className="btn btn-ghost btn-sm" style={{ color: 'var(--error)' }} onClick={() => deleteForever(t)}><Trash2 size={14} /> Delete forever</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <div className="small muted mt">{trashTasks ? trashTasks.length : 0} deleted task(s)</div>
+        </>
+      ) : (
+      <>
       <div className="card mt">
         {tasks === null ? <div className="card-p flex"><Spinner /> <span className="muted">Loading tasks...</span></div>
         : tasks.length === 0 ? <EmptyState text="No tasks found" sub="Try a different filter, or create a new task." />
@@ -104,6 +160,8 @@ export default function Tasks() {
         )}
       </div>
       <div className="small muted mt">{total} task(s)</div>
+      </>
+      )}
 
       {modal !== undefined && (
         <TaskModal task={modal} onClose={() => setModal(undefined)} onSaved={() => { setModal(undefined); load(); }} />

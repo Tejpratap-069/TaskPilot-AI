@@ -1,7 +1,15 @@
-import { useEffect, useState } from 'react';
-import { X, Plus, Trash2, Check } from 'lucide-react';
-import { taskService } from '../api/services';
+import { useEffect, useRef, useState } from 'react';
+import { X, Plus, Trash2, Check, Download, FileText, Upload } from 'lucide-react';
+import { taskService, attachmentService } from '../api/services';
 import { PRIORITIES, STATUSES, CATEGORIES, fmtDate } from './ui';
+
+function fmtSize(bytes) {
+  if (bytes == null) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+const ATT_ACCEPT = 'image/*,.pdf,.txt,.md,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip';
 
 export default function TaskModal({ task, onClose, onSaved }) {
   const editing = !!task;
@@ -14,6 +22,35 @@ export default function TaskModal({ task, onClose, onSaved }) {
   const [subtasks, setSubtasks] = useState([]);
   const [history, setHistory] = useState([]);
   const [newSub, setNewSub] = useState('');
+  const [attachments, setAttachments] = useState([]);
+  const [thumbs, setThumbs] = useState({}); // attachmentId -> object URL (images only)
+  const [attError, setAttError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const objectUrls = useRef(new Set());
+  const fileInput = useRef(null);
+
+  // Revoke every object URL this modal created when it unmounts.
+  useEffect(() => {
+    const urls = objectUrls.current;
+    return () => { urls.forEach(u => URL.revokeObjectURL(u)); urls.clear(); };
+  }, []);
+
+  async function loadThumb(att) {
+    try {
+      const blob = await attachmentService.content(att.id);
+      const url = URL.createObjectURL(blob);
+      objectUrls.current.add(url);
+      setThumbs(prev => ({ ...prev, [att.id]: url }));
+    } catch { /* thumbnail is best-effort; the file chip still renders */ }
+  }
+
+  async function loadAttachments(taskId) {
+    try {
+      const list = await attachmentService.list(taskId);
+      setAttachments(list || []);
+      (list || []).forEach(a => { if (a.contentType && a.contentType.startsWith('image/')) loadThumb(a); });
+    } catch (e) { setAttError(e.message); }
+  }
 
   useEffect(() => {
     if (task) {
@@ -24,6 +61,7 @@ export default function TaskModal({ task, onClose, onSaved }) {
       });
       setSubtasks(task.subtasks || []);
       taskService.history(task.id).then(setHistory).catch(() => {});
+      if (task.id) loadAttachments(task.id);
     }
   }, [task]);
 
@@ -66,6 +104,39 @@ export default function TaskModal({ task, onClose, onSaved }) {
   async function remove() {
     if (!window.confirm('Delete this task permanently?')) return;
     try { await taskService.remove(task.id); onSaved(); } catch (e) { setError(e.message); }
+  }
+
+  async function uploadAttachment(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file) return;
+    setUploading(true); setAttError('');
+    try {
+      await attachmentService.upload(task.id, file);
+      await loadAttachments(task.id);
+    } catch (err) { setAttError(err.message); }
+    setUploading(false);
+  }
+  async function downloadAttachment(att) {
+    try {
+      const blob = await attachmentService.content(att.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = att.fileName || 'attachment';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (err) { setAttError(err.message); }
+  }
+  async function deleteAttachment(att) {
+    try {
+      await attachmentService.remove(att.id);
+      if (thumbs[att.id]) {
+        URL.revokeObjectURL(thumbs[att.id]);
+        objectUrls.current.delete(thumbs[att.id]);
+        setThumbs(prev => { const next = { ...prev }; delete next[att.id]; return next; });
+      }
+      await loadAttachments(task.id);
+    } catch (err) { setAttError(err.message); }
   }
 
   return (
@@ -121,6 +192,29 @@ export default function TaskModal({ task, onClose, onSaved }) {
                 <input className="input" value={newSub} onChange={e => setNewSub(e.target.value)} placeholder="Add a subtask" onKeyDown={e => e.key === 'Enter' && addSubtask()} />
                 <button className="btn btn-outline" onClick={addSubtask}><Plus size={15} /> Add</button>
               </div>
+
+              <div className="section-title mt">Attachments</div>
+              {attError && <div className="alert alert-error">{attError}</div>}
+              {attachments.length === 0 && <div className="muted small mb">No attachments yet. Max 2 MB per file.</div>}
+              <div className="att-list">
+                {attachments.map(a => (
+                  <div key={a.id} className="att-item">
+                    {a.contentType && a.contentType.startsWith('image/') && thumbs[a.id]
+                      ? <img className="att-thumb" src={thumbs[a.id]} alt={a.fileName} />
+                      : <span className="att-chip"><FileText size={17} /></span>}
+                    <span className="att-meta">
+                      <span className="att-name" title={a.fileName}>{a.fileName}</span>
+                      <span className="small muted">{fmtSize(a.sizeBytes)}</span>
+                    </span>
+                    <button className="icon-btn" title="Download" onClick={() => downloadAttachment(a)}><Download size={16} /></button>
+                    <button className="icon-btn" title="Delete attachment" onClick={() => deleteAttachment(a)}><Trash2 size={16} /></button>
+                  </div>
+                ))}
+              </div>
+              <input ref={fileInput} type="file" accept={ATT_ACCEPT} style={{ display: 'none' }} onChange={uploadAttachment} />
+              <button className="btn btn-outline mt" onClick={() => fileInput.current && fileInput.current.click()} disabled={uploading}>
+                {uploading ? <><span className="spinner" /> Uploading...</> : <><Upload size={15} /> Upload file</>}
+              </button>
 
               <div className="section-title mt">History</div>
               {history.length === 0 && <div className="muted small">No history yet.</div>}

@@ -72,6 +72,22 @@ public class TaskController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/trash")
+    public List<TaskResponse> trash() {
+        return taskService.trash(securityUtil.currentUser());
+    }
+
+    @PostMapping("/{id}/restore")
+    public TaskResponse restore(@PathVariable Long id) {
+        return taskService.restore(securityUtil.currentUser(), id);
+    }
+
+    @DeleteMapping("/{id}/permanent")
+    public ResponseEntity<Void> permanentDelete(@PathVariable Long id) {
+        taskService.permanentDelete(securityUtil.currentUser(), id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/subtasks")
     public ResponseEntity<SubtaskResponse> addSubtask(@PathVariable Long id, @Valid @RequestBody SubtaskRequest req) {
         return ResponseEntity.status(HttpStatus.CREATED)

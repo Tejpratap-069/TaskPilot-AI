@@ -5,6 +5,7 @@ import com.taskpilot.enums.TaskStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
+@SQLRestriction("deleted_at is null")
 @Table(name = "tasks", indexes = {
         @Index(name = "idx_tasks_user_status", columnList = "user_id,status"),
         @Index(name = "idx_tasks_user_due", columnList = "user_id,due_date")
@@ -59,6 +61,10 @@ public class Task {
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
+
+    /** Soft-delete marker: set when the task is moved to trash, null while active. */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

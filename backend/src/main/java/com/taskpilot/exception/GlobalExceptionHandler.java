@@ -7,6 +7,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +33,16 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(TooManyRequestsException.class)
     public ResponseEntity<Map<String, Object>> tooManyRequests(TooManyRequestsException ex) {
         return body(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> uploadTooLarge(MaxUploadSizeExceededException ex) {
+        return body(HttpStatus.BAD_REQUEST, "File exceeds the maximum allowed upload size");
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<Map<String, Object>> missingPart(MissingServletRequestPartException ex) {
+        return body(HttpStatus.BAD_REQUEST, "Missing required part: " + ex.getRequestPartName());
     }
 
     @ExceptionHandler(BadCredentialsException.class)

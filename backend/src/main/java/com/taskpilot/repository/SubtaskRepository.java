@@ -9,4 +9,5 @@ import java.util.List;
 public interface SubtaskRepository extends JpaRepository<Subtask, Long> {
     List<Subtask> findByTaskOrderByCreatedAtAsc(Task task);
     void deleteByTask(Task task);
+    void deleteByTaskId(Long taskId);
 }
