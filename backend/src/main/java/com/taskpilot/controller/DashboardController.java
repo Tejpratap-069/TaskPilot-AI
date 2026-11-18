@@ -28,6 +28,11 @@ public class DashboardController {
         return dashboard.summary(securityUtil.currentUser());
     }
 
+    @GetMapping("/insights")
+    public Insights insights() {
+        return dashboard.insights(securityUtil.currentUser());
+    }
+
     @GetMapping("/weekly")
     public List<WeeklyStat> weekly() {
         return dashboard.weekly(securityUtil.currentUser());

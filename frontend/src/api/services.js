@@ -35,6 +35,7 @@ export const dashboardService = {
   breakdown: () => api('/dashboard/breakdown'),
   focus: () => api('/dashboard/focus'),
   recentActivity: (limit = 8) => api('/dashboard/recent-activity?limit=' + limit),
+  insights: () => api('/dashboard/insights'),
 };
 
 export const plannerService = {

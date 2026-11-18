@@ -1,6 +1,7 @@
 package com.taskpilot.config;
 
 import com.taskpilot.security.JwtAuthFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,10 +18,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
 public class SecurityConfig {
+
+    /** Comma-separated exact origins allowed to call the API cross-origin. */
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOriginsCsv;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -35,10 +41,16 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cors = new CorsConfiguration();
-        // Same-origin serving needs no CORS; origin patterns also allow a
-        // separately hosted frontend (e.g. Vercel) during development.
-        // Auth is via JWT header, not cookies, so a wildcard pattern is safe here.
-        cors.setAllowedOriginPatterns(List.of("*"));
+        // Exact-origin allowlist (property app.cors.allowed-origins, env
+        // CORS_ALLOWED_ORIGINS). Same-origin serving needs no CORS at all;
+        // the allowlist exists for the separately hosted frontend (Vercel).
+        // Auth is via the Authorization header, not cookies, and preflight
+        // requests from any origin not on the list are rejected.
+        List<String> origins = Arrays.stream(allowedOriginsCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        cors.setAllowedOrigins(origins);
         cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         cors.setAllowedHeaders(List.of("*"));
         cors.setAllowCredentials(true);

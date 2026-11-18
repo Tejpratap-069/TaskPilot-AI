@@ -53,6 +53,13 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     long countByUserAndCompletedAtBetween(User user, LocalDateTime from, LocalDateTime to);
 
+    List<Task> findByUserAndCompletedAtBetween(User user, LocalDateTime from, LocalDateTime to);
+
+    /** Rows of (categoryName, status, count); categoryName is null for tasks without a category. */
+    @Query("SELECT c.name, t.status, COUNT(t) FROM Task t LEFT JOIN t.category c " +
+           "WHERE t.user = :user GROUP BY c.name, t.status")
+    List<Object[]> countByCategoryAndStatus(@Param("user") User user);
+
     long countByUserAndCreatedAtBetween(User user, LocalDateTime from, LocalDateTime to);
 
     List<Task> findByUserAndDueDateBetweenOrderByDueDateAsc(User user, LocalDate from, LocalDate to);

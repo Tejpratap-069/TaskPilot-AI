@@ -11,6 +11,8 @@ tasks are saved.
 
 ## Live Demo
 
+[![CI](https://github.com/Tejpratap-069/TaskPilot-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/Tejpratap-069/TaskPilot-AI/actions/workflows/ci.yml)
+
 - **Live app:** https://taskpilot-ai-gules.vercel.app — register an account and use the full product in the browser.
 - **Backend API:** https://taskpilot-ai-production-7a32feca.up.railway.app — API docs (Swagger UI): https://taskpilot-ai-production-7a32feca.up.railway.app/swagger-ui.html
 - **Deployment:** frontend on Vercel, Spring Boot backend on Railway, database on Supabase (PostgreSQL). Production runs on PostgreSQL through the env-configurable JDBC driver; local development uses MySQL 8 (see setup below).

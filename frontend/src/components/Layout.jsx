@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import {
   LayoutDashboard, CheckSquare, Sparkles, Sun, CalendarDays, Columns3,
-  History, Bell, Settings as SettingsIcon, Timer, LogOut, Compass,
+  History, Bell, Settings as SettingsIcon, Timer, LogOut, Compass, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { notificationService } from '../api/services';
@@ -19,6 +19,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [unread, setUnread] = useState(0);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -43,17 +44,21 @@ export default function Layout() {
 
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {navOpen && <div className="nav-overlay" onClick={() => setNavOpen(false)} aria-hidden="true" />}
+      <aside className={'sidebar' + (navOpen ? ' open' : '')}>
         <div className="brand">
           <div className="logo-mark"><Compass size={18} /></div>
           <div>
             <b>TaskPilot AI</b>
             <div style={{ fontSize: 11, color: '#93A3B5' }}>Plan smarter. Focus better.</div>
           </div>
+          <button className="icon-btn nav-close" aria-label="Close menu" onClick={() => setNavOpen(false)}>
+            <X size={20} />
+          </button>
         </div>
         <nav>
           {links.map(l => (
-            <NavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
+            <NavLink key={l.to} to={l.to} end={l.end} onClick={() => setNavOpen(false)} className={({ isActive }) => 'nav-item' + (isActive ? ' active' : '')}>
               <l.icon size={17} /> {l.label}
               {l.count > 0 && <span className="count">{l.count}</span>}
             </NavLink>
@@ -63,18 +68,23 @@ export default function Layout() {
           <div className="name">{user?.name}</div>
           <div className="email">{user?.email}</div>
           <button className="btn btn-ghost btn-sm" style={{ color: '#C7D0DB', marginTop: 8, paddingLeft: 0 }}
-            onClick={() => { logout(); navigate('/login'); }}>
+            onClick={() => { setNavOpen(false); logout(); navigate('/login'); }}>
             <LogOut size={15} /> Sign out
           </button>
         </div>
       </aside>
       <div className="main">
         <div className="topbar">
+          <button className="icon-btn menu-btn" aria-label="Open menu" onClick={() => setNavOpen(true)}>
+            <Menu size={22} />
+          </button>
           <div className="page-title">{TITLES[location.pathname] || 'TaskPilot AI'}</div>
           <div className="spacer" />
-          <span className="muted small">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
+          <span className="muted small topbar-date">{new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
         </div>
-        <div className="content"><Outlet /></div>
+        <div className="content">
+          <div key={location.pathname} className="page-enter"><Outlet /></div>
+        </div>
       </div>
     </div>
   );

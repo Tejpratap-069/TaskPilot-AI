@@ -13,6 +13,7 @@ export default function Tasks() {
   const [sortBy, setSortBy] = useState('dueDate');
   const [error, setError] = useState('');
   const [modal, setModal] = useState(undefined); // undefined=closed, null=new, obj=edit
+  const [justDone, setJustDone] = useState(null); // task id that was just completed (micro-animation)
 
   function load() {
     taskService.list({ search, status, priority, sortBy, size: 200 })
@@ -22,7 +23,14 @@ export default function Tasks() {
   useEffect(() => { const t = setTimeout(load, 200); return () => clearTimeout(t); }, [search, status, priority, sortBy]);
 
   async function quickStatus(task, next) {
-    try { const upd = await taskService.setStatus(task.id, next); setTasks(tasks.map(t => (t.id === task.id ? upd : t))); }
+    try {
+      const upd = await taskService.setStatus(task.id, next);
+      setTasks(tasks.map(t => (t.id === task.id ? upd : t)));
+      if (next === 'COMPLETED') {
+        setJustDone(task.id);
+        setTimeout(() => setJustDone(cur => (cur === task.id ? null : cur)), 950);
+      }
+    }
     catch (e) { setError(e.message); }
   }
   async function remove(task) {
@@ -33,7 +41,7 @@ export default function Tasks() {
   return (
     <div>
       {error && <div className="alert alert-error">{error}</div>}
-      <div className="flex wrap">
+      <div className="flex wrap filters">
         <div className="flex" style={{ flex: 1, minWidth: 220, position: 'relative' }}>
           <Search size={16} style={{ position: 'absolute', left: 10, color: 'var(--text-2)' }} />
           <input className="input" style={{ paddingLeft: 32 }} placeholder="Search tasks..." value={search} onChange={e => setSearch(e.target.value)} />
@@ -60,10 +68,11 @@ export default function Tasks() {
           <table className="table">
             <thead><tr><th>Task</th><th>Due</th><th>Priority</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
             <tbody>
-              {tasks.map(t => (
-                <tr key={t.id}>
+              {tasks.map((t, i) => (
+                <tr key={t.id} className={'row-enter' + (justDone === t.id ? ' row-just-done' : '')}
+                  style={{ animationDelay: Math.min(i * 35, 350) + 'ms' }}>
                   <td>
-                    <div style={{ fontWeight: 600 }}>{t.title}</div>
+                    <div style={{ fontWeight: 600 }}><span className={'task-title' + (t.status === 'COMPLETED' ? ' done' : '')}>{t.title}</span></div>
                     <div className="flex" style={{ gap: 6, marginTop: 2 }}>
                       <CategoryBadge value={t.category} />
                       {t.estimatedMinutes ? <span className="small muted">{t.estimatedMinutes} min</span> : null}
@@ -82,7 +91,7 @@ export default function Tasks() {
                     <div className="row-actions">
                       {t.status !== 'COMPLETED'
                         ? <button className="icon-btn" title="Mark complete" onClick={() => quickStatus(t, 'COMPLETED')}><CheckCircle2 size={17} /></button>
-                        : <button className="icon-btn" title="Reopen" onClick={() => quickStatus(t, 'TODO')}><RotateCcw size={17} /></button>}
+                        : <button className="icon-btn" title="Reopen" onClick={() => quickStatus(t, 'TODO')}><span className={justDone === t.id ? 'done-pop' : undefined} style={{ display: 'inline-flex' }}><RotateCcw size={17} /></span></button>}
                       <button className="icon-btn" title="Edit" onClick={() => setModal(t)}><Pencil size={16} /></button>
                       <button className="icon-btn" title="Delete" onClick={() => remove(t)}><Trash2 size={16} /></button>
                     </div>

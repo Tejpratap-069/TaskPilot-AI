@@ -6,6 +6,7 @@ import { dashboardService } from '../api/services';
 import { useAuth } from '../context/AuthContext';
 import { PriorityBadge, StatusBadge, DueLabel, EmptyState, Spinner, timeAgo, CategoryBadge } from '../components/ui';
 import TaskModal from '../components/TaskModal';
+import Insights from '../components/Insights';
 
 const PIE_COLORS = { TODO: '#526579', IN_PROGRESS: '#416C9A', COMPLETED: '#38765B', CANCELLED: '#B54747' };
 
@@ -129,6 +130,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      <Insights />
 
       <div className="grid-2 mt">
         <div className="card">

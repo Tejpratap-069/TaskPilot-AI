@@ -17,4 +17,16 @@ public class DashboardDtos {
     public record FocusRecommendation(TaskResponse task, int score, List<String> reasons) {}
 
     public record PriorityCount(Map<String, Long> byPriority, Map<String, Long> byStatus) {}
+
+    /** Completions in one calendar week; weekStart is the Monday of that week. */
+    public record WeekCompletion(LocalDate weekStart, long completed) {}
+
+    /** Task counts for one category: open = TODO + IN_PROGRESS. */
+    public record CategoryCount(String category, long open, long completed) {}
+
+    public record Insights(
+            List<WeekCompletion> completionsByWeek,
+            List<CategoryCount> byCategory,
+            int currentStreakDays,
+            Summary totals) {}
 }

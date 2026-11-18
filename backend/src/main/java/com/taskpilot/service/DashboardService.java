@@ -10,10 +10,12 @@ import com.taskpilot.repository.TaskRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.TextStyle;
+import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 
 @Service
@@ -93,6 +95,61 @@ public class DashboardService {
             byStatus.put(s.name(), tasks.countByUserAndStatus(user, s));
         }
         return new PriorityCount(byPriority, byStatus);
+    }
+
+    /**
+     * Productivity insights, all computed from the user's real task data:
+     * completions per week for the last 8 weeks (Monday-start), per-category
+     * open/completed counts, and the current completion streak in days
+     * (consecutive days with at least one completion, counting back from
+     * today — or from yesterday if today has none yet).
+     */
+    @Transactional(readOnly = true)
+    public Insights insights(User user) {
+        LocalDate today = LocalDate.now();
+        LocalDate currentWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+        LocalDate earliestWeekStart = currentWeekStart.minusWeeks(7);
+
+        // One fetch of the last ~year of completions feeds both the weekly
+        // buckets and the streak.
+        List<Task> completed = tasks.findByUserAndCompletedAtBetween(
+                user, today.minusDays(366).atStartOfDay(), LocalDateTime.now());
+
+        Map<LocalDate, Long> byWeek = new LinkedHashMap<>();
+        for (int i = 0; i < 8; i++) byWeek.put(earliestWeekStart.plusWeeks(i), 0L);
+        Set<LocalDate> completionDays = new HashSet<>();
+        for (Task t : completed) {
+            if (t.getCompletedAt() == null) continue;
+            LocalDate day = t.getCompletedAt().toLocalDate();
+            completionDays.add(day);
+            LocalDate weekStart = day.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            if (byWeek.containsKey(weekStart)) byWeek.merge(weekStart, 1L, Long::sum);
+        }
+        List<WeekCompletion> weeks = byWeek.entrySet().stream()
+                .map(e -> new WeekCompletion(e.getKey(), e.getValue()))
+                .toList();
+
+        int streak = 0;
+        LocalDate cursor = completionDays.contains(today) ? today : today.minusDays(1);
+        while (completionDays.contains(cursor)) {
+            streak++;
+            cursor = cursor.minusDays(1);
+        }
+
+        Map<String, long[]> catCounts = new LinkedHashMap<>();
+        for (Object[] row : tasks.countByCategoryAndStatus(user)) {
+            String name = row[0] == null ? "Uncategorized" : (String) row[0];
+            TaskStatus status = (TaskStatus) row[1];
+            long count = (Long) row[2];
+            long[] pair = catCounts.computeIfAbsent(name, k -> new long[2]);
+            if (status == TaskStatus.COMPLETED) pair[1] += count;
+            else if (status == TaskStatus.TODO || status == TaskStatus.IN_PROGRESS) pair[0] += count;
+        }
+        List<CategoryCount> byCategory = catCounts.entrySet().stream()
+                .map(e -> new CategoryCount(e.getKey(), e.getValue()[0], e.getValue()[1]))
+                .toList();
+
+        return new Insights(weeks, byCategory, streak, summary(user));
     }
 
     /** "Today's focus": the highest-scoring open task by the explainable urgency score. */
