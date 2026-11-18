@@ -1,6 +1,15 @@
-# TaskPilot AI — Intelligent Personal Task Assistant
+<h1 align="center">TaskPilot AI — Intelligent Personal Task Assistant</h1>
 
-**Plan smarter. Focus better. Get things done.**
+<p align="center"><strong>Plan smarter. Focus better. Get things done.</strong></p>
+
+<p align="center">
+  <a href="https://taskpilot-ai-gules.vercel.app"><img src="https://img.shields.io/badge/Live_App-Open_it-00C853?style=for-the-badge&logo=vercel&logoColor=white" alt="Live app"></a>
+  <img src="https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring_Boot-3.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white" alt="Spring Boot 3.3">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19">
+  <img src="https://img.shields.io/badge/PostgreSQL-Supabase-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL on Supabase">
+  <img src="https://img.shields.io/badge/Deployed-Railway-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Deployed on Railway">
+</p>
 
 TaskPilot AI is a working task-management SaaS product that converts natural-language
 instructions into structured tasks. You type a sentence; the system extracts individual
@@ -9,6 +18,31 @@ tasks are saved.
 
 > Hackathon Problem Statement No. 41 — AI Personal Task Assistant
 
+**Try it in 10 seconds:** open the [live app](https://taskpilot-ai-gules.vercel.app), create a
+free account, and type *"Finish my Java assignment by tomorrow, revise machine learning on
+Sunday, and submit my project next Friday. Java is the most urgent."* into AI Capture.
+
+## What makes this different
+
+Most student task apps are a pretty UI over fake data. This one is a deployed product:
+
+- **Real accounts, real database** — BCrypt-hashed passwords, JWT sessions, PostgreSQL in
+  production. Register on your phone, sign in on your laptop, your tasks are there.
+- **AI suggests, you approve** — extraction never saves anything by itself. Every task is
+  reviewed first, and every priority carries its *reason* ("Priority raised because you
+  marked it as the most urgent").
+- **Reminders that fire on their own** — an hourly scheduler generates overdue / due-today /
+  due-tomorrow notifications from real task data, even if you never open the app.
+- **Security tested like production** — login rate-limiting (429 after 5 failures), a strict
+  CORS allowlist, password rules, and per-account data isolation *proven* with a two-account
+  test: account B sees zero of account A's tasks.
+- **Insights from real data** — weekly completion trends, per-category breakdown and streaks,
+  computed from your actual task history. No placeholder numbers anywhere.
+- **It broke in production — and got fixed properly.** End-to-end testing caught the task list
+  failing on PostgreSQL (`lower(bytea)`: a null JPQL parameter binding as bytea). Root-caused
+  and fixed with an explicit cast (commit `6373d20`), then re-verified live. That story is in
+  [DEMO.md](DEMO.md).
+
 ## Live Demo
 
 [![CI](https://github.com/Tejpratap-069/TaskPilot-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/Tejpratap-069/TaskPilot-AI/actions/workflows/ci.yml)
@@ -16,6 +50,36 @@ tasks are saved.
 - **Live app:** https://taskpilot-ai-gules.vercel.app — register an account and use the full product in the browser.
 - **Backend API:** https://taskpilot-ai-production-7a32feca.up.railway.app — API docs (Swagger UI): https://taskpilot-ai-production-7a32feca.up.railway.app/swagger-ui.html
 - **Deployment:** frontend on Vercel, Spring Boot backend on Railway, database on Supabase (PostgreSQL). Production runs on PostgreSQL through the env-configurable JDBC driver; local development uses MySQL 8 (see setup below).
+
+```mermaid
+flowchart LR
+    U[User] --> V[Vercel<br/>React 19 frontend]
+    V -->|JWT + REST| R[Railway<br/>Spring Boot 3.3 API]
+    R --> S[(Supabase<br/>PostgreSQL)]
+    R -->|task extraction| P[Python NLP service<br/>Railway]
+    R -.->|optional LLM path| G[Gemini API]
+    R -->|hourly scheduler| N[Deadline reminders]
+```
+
+## Verified in production
+
+Every row below was executed against the live deployment on 2026-11-18 — not unit tests,
+not localhost:
+
+| Check | Result |
+|---|---|
+| Register a new account | 201 — persisted in PostgreSQL |
+| Login with correct password | 200 + JWT issued |
+| Login with wrong password | 401 — generic message, no account-existence leak |
+| API call with no token | 401 "Authentication required" |
+| Second account's task list | 0 tasks — per-account isolation holds |
+| AI extraction of the demo sentence | 3 tasks, correct dates, URGENT flagged with its reason |
+| Scheduled reminder | Created with zero user interaction (unread count 0 → 1 after scheduler run) |
+| Brute-force probe | 5 failed logins → 401, 6th attempt → 429 |
+| CORS probe from a random origin | 403 — only the app's own origins are allowlisted |
+| Weak password registration | 400 — "at least one letter and one digit" enforced |
+| Insights endpoint | Real weekly completions, category counts and streak returned |
+| Task list on PostgreSQL | Was broken (`lower(bytea)`), fixed in `6373d20`, re-verified 200 |
 
 ## Screenshots
 
