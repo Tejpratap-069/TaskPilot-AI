@@ -9,6 +9,12 @@ tasks are saved.
 
 > Hackathon Problem Statement No. 41 — AI Personal Task Assistant
 
+## Live Demo
+
+- **Live app:** https://taskpilot-ai-gules.vercel.app — register an account and use the full product in the browser.
+- **Backend API:** https://taskpilot-ai-production-7a32feca.up.railway.app — API docs (Swagger UI): https://taskpilot-ai-production-7a32feca.up.railway.app/swagger-ui.html
+- **Deployment:** frontend on Vercel, Spring Boot backend on Railway, database on Supabase (PostgreSQL). Production runs on PostgreSQL through the env-configurable JDBC driver; local development uses MySQL 8 (see setup below).
+
 ## Screenshots
 
 **Dashboard** — live stats, overall completion, Today's Focus and weekly productivity
@@ -37,10 +43,10 @@ tasks are saved.
 |---|---|---|
 | Frontend | React + Vite, React Router, Recharts, Lucide | Premium SaaS UI (landing, auth, dashboard, AI capture, tasks, My Day, calendar, Kanban, activity, notifications, Pomodoro, settings) |
 | Primary backend | **Java 21 + Spring Boot 3.3** (Spring Web, Spring Data JPA/Hibernate, Spring Security, JWT, BCrypt, Bean Validation, Springdoc OpenAPI) | ALL application data, auth, business logic, dashboard analytics |
-| Database | **MySQL 8** (JPA/Hibernate) | users, tasks, categories, subtasks, task_history, notifications, user_preferences |
+| Database | **MySQL 8 / PostgreSQL** (JPA/Hibernate, JDBC driver chosen by env config) | users, tasks, categories, subtasks, task_history, notifications, user_preferences |
 | NLP service | Python 3 (standard library only, zero dependencies) | Supporting service ONLY: natural-language extraction + explainable prioritization |
 
-Java Spring Boot is the primary backend and the only component that talks to MySQL.
+Java Spring Boot is the primary backend and the only component that talks to the database.
 Python is never in the data path: if the Python service is down, the Java backend
 falls back to a built-in parser implementing the same rules, so task capture keeps working.
 
@@ -50,7 +56,7 @@ trained machine-learning model, and it needs no paid API key.
 
 ## Deploying to the internet
 
-See **DEPLOY.md** — the included `Dockerfile` builds the whole product (site + API + accounts) as one service for Railway/Render with a MySQL database, giving one public link that works on any device.
+See **DEPLOY.md** — the included `Dockerfile` builds the whole product (site + API + accounts) as one service for Railway/Render with a MySQL or PostgreSQL database, giving one public link that works on any device. This is exactly how the Live Demo above is deployed (Railway + Supabase PostgreSQL).
 
 ## Project structure
 
