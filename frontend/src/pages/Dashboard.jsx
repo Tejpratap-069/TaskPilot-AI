@@ -8,7 +8,7 @@ import { PriorityBadge, StatusBadge, DueLabel, EmptyState, Spinner, timeAgo, Cat
 import TaskModal from '../components/TaskModal';
 import Insights from '../components/Insights';
 
-const PIE_COLORS = { TODO: '#526579', IN_PROGRESS: '#416C9A', COMPLETED: '#38765B', CANCELLED: '#B54747' };
+const PIE_COLORS = { TODO: '#8a87a0', IN_PROGRESS: '#7cc4ff', COMPLETED: '#4cc38a', CANCELLED: '#ff7a7a' };
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -39,13 +39,13 @@ export default function Dashboard() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const pieData = breakdown ? Object.entries(breakdown.byStatus).map(([k, v]) => ({ name: k.replace('_', ' '), value: v, key: k })).filter(d => d.value > 0) : [];
   const stats = [
-    [ListTodo, 'Total tasks', summary.totalTasks, 'var(--navy)'],
-    [Clock, 'Pending', summary.pendingTasks, 'var(--blue-gray)'],
-    [TrendingUp, 'In progress', summary.inProgressTasks, 'var(--info)'],
-    [CheckCircle2, 'Completed', summary.completedTasks, 'var(--success)'],
-    [AlertTriangle, 'Overdue', summary.overdueTasks, 'var(--error)'],
-    [CalendarClock, 'Due today', summary.dueTodayTasks, 'var(--warning)'],
-    [Flame, 'High priority', summary.highPriorityTasks, 'var(--error)'],
+    [ListTodo, 'Total tasks', summary.totalTasks, '#7c6cf6'],
+    [Clock, 'Pending', summary.pendingTasks, '#7cc4ff'],
+    [TrendingUp, 'In progress', summary.inProgressTasks, '#b7a6ff'],
+    [CheckCircle2, 'Completed', summary.completedTasks, '#4cc38a'],
+    [AlertTriangle, 'Overdue', summary.overdueTasks, '#ff7a7a'],
+    [CalendarClock, 'Due today', summary.dueTodayTasks, '#f0ad4e'],
+    [Flame, 'High priority', summary.highPriorityTasks, '#ff9de2'],
   ];
 
   return (
@@ -64,8 +64,8 @@ export default function Dashboard() {
       <div className="stat-grid mt">
         {stats.map(([Icon, label, value, color]) => (
           <div key={label} className="card stat-card">
-            <div className="label"><Icon size={14} style={{ color }} /> {label}</div>
-            <div className="value" style={{ color }}>{value}</div>
+            <div className="label"><span className="stat-chip" style={{ background: color + '26', color }}><Icon size={15} /></span> {label}</div>
+            <div className="value">{value}</div>
           </div>
         ))}
       </div>
@@ -103,12 +103,12 @@ export default function Dashboard() {
           <div className="muted small mb">Tasks completed and created per day, last 7 days</div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={weekly} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E3E7EC" />
-              <XAxis dataKey="dayLabel" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="completed" name="Completed" fill="#477C78" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="created" name="Created" fill="#243447" radius={[4, 4, 0, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#26262f" />
+              <XAxis dataKey="dayLabel" tick={{ fontSize: 12, fill: '#9d9cae' }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9d9cae' }} />
+              <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: '#21212b', border: '1px solid #2e2e3a', borderRadius: 10, color: '#f2f1f7' }} labelStyle={{ color: '#f2f1f7' }} itemStyle={{ color: '#f2f1f7' }} />
+              <Bar dataKey="completed" name="Completed" fill="#7c6cf6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="created" name="Created" fill="#7cc4ff" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -121,7 +121,7 @@ export default function Dashboard() {
                 <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
                   {pieData.map(d => <Cell key={d.key} fill={PIE_COLORS[d.key]} />)}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ background: '#21212b', border: '1px solid #2e2e3a', borderRadius: 10, color: '#f2f1f7' }} itemStyle={{ color: '#f2f1f7' }} />
               </PieChart>
             </ResponsiveContainer>
           )}

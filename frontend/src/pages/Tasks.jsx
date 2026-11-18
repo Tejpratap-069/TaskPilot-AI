@@ -69,7 +69,8 @@ export default function Tasks() {
             <thead><tr><th>Task</th><th>Due</th><th>Priority</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
             <tbody>
               {tasks.map((t, i) => (
-                <tr key={t.id} className={'row-enter' + (justDone === t.id ? ' row-just-done' : '')}
+                <tr key={t.id} className={'row-enter task-row' + (justDone === t.id ? ' row-just-done' : '')}
+                  data-category={t.category || 'OTHER'}
                   style={{ animationDelay: Math.min(i * 35, 350) + 'ms' }}>
                   <td>
                     <div style={{ fontWeight: 600 }}><span className={'task-title' + (t.status === 'COMPLETED' ? ' done' : '')}>{t.title}</span></div>

@@ -58,7 +58,7 @@ export default function Landing() {
 
       <div className="feature-grid">
         {[
-          [Sparkles, 'Natural-language capture', 'One instruction becomes multiple structured tasks with deadlines, priorities and categories - extracted by an explainable NLP engine.'],
+          [Sparkles, 'Natural-language capture', 'One instruction becomes multiple structured tasks with deadlines, priorities and categories. Powered by a Gemini AI model, backed by an explainable rule-based engine — every suggestion shows its reasoning, and nothing is saved without your approval.'],
           [BarChart3, 'A dashboard that is real', 'Every number - totals, overdue, due today, weekly completions - is calculated live from your saved tasks. No placeholders.'],
           [CalendarDays, 'Calendar, Kanban and My Day', 'See the same tasks by date, by status board, or as a focused daily plan. Everything stays in sync.'],
           [ShieldCheck, 'Private by design', 'Accounts are secured with hashed passwords and JWT sessions. Your tasks belong to you and only you.'],

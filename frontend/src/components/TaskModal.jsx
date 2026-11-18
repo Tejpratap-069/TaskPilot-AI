@@ -110,7 +110,7 @@ export default function TaskModal({ task, onClose, onSaved }) {
               {subtasks.map(s => (
                 <div key={s.id} className="flex" style={{ padding: '5px 0' }}>
                   <button className="icon-btn" onClick={() => toggleSubtask(s)} title="Toggle">
-                    <span style={{ width: 18, height: 18, borderRadius: 5, border: '1.5px solid var(--blue-gray)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: s.completed ? 'var(--success)' : '#fff', color: '#fff' }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 5, border: '1.5px solid var(--blue-gray)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: s.completed ? 'var(--success)' : 'transparent', color: '#fff' }}>
                       {s.completed && <Check size={12} />}
                     </span>
                   </button>

@@ -31,10 +31,10 @@ export default function KanbanPage() {
               <h4>{status.replace('_', ' ')} <span>{col.length}</span></h4>
               {col.length === 0 && <div className="small muted" style={{ textAlign: 'center', padding: '14px 0' }}>No tasks</div>}
               {col.map(t => (
-                <div key={t.id} className="kanban-card">
+                <div key={t.id} className="kanban-card" data-category={t.category || 'OTHER'}>
                   <div className="t" style={{ cursor: 'pointer' }} onClick={() => setEditing(t)}>{t.title}</div>
                   <div className="flex" style={{ justifyContent: 'space-between' }}>
-                    <span className="small"><DueLabel task={t} /></span>
+                    <span className="small due-wrap"><DueLabel task={t} /></span>
                     <PriorityBadge value={t.priority} />
                   </div>
                   <select value={t.status} onChange={e => changeStatus(t, e.target.value)}>

@@ -65,13 +65,13 @@ export default function AiCapture() {
             {analyzing ? <><span className="spinner" /> Analyzing...</> : <><Sparkles size={16} /> Analyze instruction</>}
           </button>
           <button className="btn btn-ghost" onClick={() => setText(EXAMPLE)}>Use example</button>
-          <span className="small muted">Engine: explainable NLP / rule-based extraction (Python service, with a local fallback).</span>
+          <span className="small muted">Engine: Gemini AI, backed by an explainable rule-based engine.</span>
         </div>
       </div>
 
       {error && <div className="alert alert-error mt">{error}</div>}
       {savedCount !== null && <div className="alert alert-success mt">{savedCount} task(s) saved to your task list. Check My Tasks or the dashboard to see them.</div>}
-      {fallbackUsed && suggestions && <div className="alert alert-warn mt">The Python NLP service is not reachable, so the built-in local fallback parser produced these results. Quality is equivalent for common phrasing.</div>}
+      {fallbackUsed && suggestions && <div className="alert alert-warn mt">The AI engine was busy, so the built-in backup parser produced these results. Quality is equivalent for common phrasing.</div>}
 
       {suggestions && (
         <div className="mt">

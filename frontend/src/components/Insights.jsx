@@ -4,6 +4,10 @@ import { Flame, BarChart3 } from 'lucide-react';
 import { dashboardService } from '../api/services';
 import { EmptyState, fmtDate } from './ui';
 
+// "Completed" segment colour per category, matching the pastel palette
+// used on the Tasks list, Kanban board and Calendar.
+const CAT_COLORS = { STUDY: '#7cc4ff', PROJECT: '#b7a6ff', PERSONAL: '#ff9de2', WORK: '#ffd66b', HEALTH: '#8be0a4', FINANCE: '#63d68a', OTHER: '#7c6cf6' };
+
 // Insights section for the Dashboard. Every number comes from
 // GET /api/dashboard/insights — nothing is hardcoded. If the call fails,
 // the section degrades to a small note instead of showing fake data.
@@ -59,11 +63,11 @@ export default function Insights() {
           {weekly.length === 0 ? <EmptyState text="No completion history yet" sub="Complete a task and your trend will appear here." /> : (
             <ResponsiveContainer width="100%" height={210}>
               <BarChart data={weekly} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E3E7EC" />
-                <XAxis dataKey="label" tick={{ fontSize: 11.5 }} interval="preserveStartEnd" />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="completed" name="Completed" fill="#477C78" radius={[4, 4, 0, 0]} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#26262f" />
+                <XAxis dataKey="label" tick={{ fontSize: 11.5, fill: '#9d9cae' }} interval="preserveStartEnd" />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9d9cae' }} />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.04)' }} contentStyle={{ background: '#21212b', border: '1px solid #2e2e3a', borderRadius: 10, color: '#f2f1f7' }} labelStyle={{ color: '#f2f1f7' }} itemStyle={{ color: '#f2f1f7' }} />
+                <Bar dataKey="completed" name="Completed" fill="#7c6cf6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -81,7 +85,7 @@ export default function Insights() {
                   <div key={c.category} className="cat-row">
                     <span style={{ fontWeight: 600 }}>{c.category}</span>
                     <span className="bar">
-                      <span className="done-seg" style={{ width: donePct + '%' }} />
+                      <span className="done-seg" style={{ width: donePct + '%', background: CAT_COLORS[c.category] || 'var(--teal)' }} />
                       <span className="open-seg" style={{ width: openPct + '%' }} />
                     </span>
                     <span className="muted">{c.completed}/{total}</span>
@@ -90,7 +94,7 @@ export default function Insights() {
               })}
               <div className="flex small muted" style={{ gap: 14 }}>
                 <span className="flex" style={{ gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: 'var(--teal)', display: 'inline-block' }} />Completed</span>
-                <span className="flex" style={{ gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: '#C9D4DE', display: 'inline-block' }} />Open</span>
+                <span className="flex" style={{ gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: '#3a3a48', display: 'inline-block' }} />Open</span>
               </div>
             </div>
           )}

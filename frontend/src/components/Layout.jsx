@@ -50,7 +50,7 @@ export default function Layout() {
           <div className="logo-mark"><Compass size={18} /></div>
           <div>
             <b>TaskPilot AI</b>
-            <div style={{ fontSize: 11, color: '#93A3B5' }}>Plan smarter. Focus better.</div>
+            <div style={{ fontSize: 11, color: '#83829a' }}>Plan smarter. Focus better.</div>
           </div>
           <button className="icon-btn nav-close" aria-label="Close menu" onClick={() => setNavOpen(false)}>
             <X size={20} />
@@ -65,9 +65,14 @@ export default function Layout() {
           ))}
         </nav>
         <div className="user-box">
-          <div className="name">{user?.name}</div>
-          <div className="email">{user?.email}</div>
-          <button className="btn btn-ghost btn-sm" style={{ color: '#C7D0DB', marginTop: 8, paddingLeft: 0 }}
+          <div className="user-profile">
+            <div className="avatar">{(user?.name || '?').trim().charAt(0).toUpperCase()}</div>
+            <div className="user-meta">
+              <div className="name">{user?.name}</div>
+              <div className="email">{user?.email}</div>
+            </div>
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{ color: '#b9b8c9', marginTop: 8, paddingLeft: 0 }}
             onClick={() => { setNavOpen(false); logout(); navigate('/login'); }}>
             <LogOut size={15} /> Sign out
           </button>

@@ -3,8 +3,13 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { taskService } from '../api/services';
 import TaskModal from '../components/TaskModal';
 
-const STATUS_BG = { TODO: '#EDF1F4', IN_PROGRESS: '#E8EFF6', COMPLETED: '#E5F0EA', CANCELLED: '#F3E3E3' };
-const STATUS_FG = { TODO: '#526579', IN_PROGRESS: '#416C9A', COMPLETED: '#38765B', CANCELLED: '#B54747' };
+// Calendar events are pastel-tinted by task category (dark ink text),
+// matching the Tasks list and Kanban board. Unmapped categories fall back
+// to a dark chip with light text.
+const CAT_BG = { STUDY: '#7cc4ff', PROJECT: '#b7a6ff', PERSONAL: '#ff9de2', WORK: '#ffd66b', HEALTH: '#8be0a4', FINANCE: '#63d68a' };
+const CAT_INK = '#23222e';
+const FALLBACK_BG = '#2a2a35';
+const FALLBACK_FG = '#c9c8d6';
 
 export default function CalendarPage() {
   const [cursor, setCursor] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
@@ -64,7 +69,7 @@ export default function CalendarPage() {
           <div key={c.key} className={'cal-cell' + (c.dim ? ' dim' : '') + (c.key === todayKey ? ' today' : '')}>
             <div className="d">{c.day}</div>
             {(byDate[c.key] || []).slice(0, 3).map(t => (
-              <span key={t.id} className="cal-task" style={{ background: STATUS_BG[t.status], color: STATUS_FG[t.status] }} onClick={() => setEditing(t)} title={t.title}>
+              <span key={t.id} className="cal-task" style={{ background: CAT_BG[t.category] || FALLBACK_BG, color: CAT_BG[t.category] ? CAT_INK : FALLBACK_FG, opacity: t.status === 'COMPLETED' ? 0.55 : 1 }} onClick={() => setEditing(t)} title={t.title}>
                 {t.priority === 'URGENT' || t.priority === 'HIGH' ? '● ' : ''}{t.title}
               </span>
             ))}
