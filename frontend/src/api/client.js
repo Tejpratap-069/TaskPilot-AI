@@ -21,7 +21,7 @@ export async function api(path, options = {}) {
   try {
     res = await fetch(BASE + path, { ...options, headers });
   } catch (e) {
-    throw new Error('Cannot reach the TaskPilot server. Is the backend running on ' + BASE + '?');
+    throw new Error('Cannot reach the TaskPilot server right now. Please try again in a moment.');
   }
   if (res.status === 401) {
     clearSession();
