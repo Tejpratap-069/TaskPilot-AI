@@ -36,7 +36,8 @@ export default function Register() {
           <div className="field"><label>Email</label>
             <input className="input" type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" /></div>
           <div className="field"><label>Password</label>
-            <input className="input" type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 6 characters" /></div>
+            <input className="input" type="password" required minLength={8} value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" />
+            <div className="small muted" style={{ marginTop: 4 }}>At least 8 characters, with at least one letter and one number.</div></div>
           <button className="btn btn-primary" style={{ width: '100%' }} disabled={busy}>{busy ? 'Creating account...' : 'Create account'}</button>
         </form>
         <p className="small muted" style={{ textAlign: 'center', marginTop: 16 }}>

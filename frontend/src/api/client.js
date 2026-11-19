@@ -33,7 +33,13 @@ export async function api(path, options = {}) {
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = null; }
   if (!res.ok) {
-    const msg = (data && data.message) || `Request failed (${res.status})`;
+    let msg = (data && data.message) || `Request failed (${res.status})`;
+    if (data && data.errors && typeof data.errors === 'object') {
+      const details = Object.entries(data.errors)
+        .map(([field, m]) => `${field.charAt(0).toUpperCase() + field.slice(1)}: ${m}`)
+        .join(' ');
+      if (details) msg = details;
+    }
     throw new Error(msg);
   }
   return data;
